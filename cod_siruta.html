@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ro">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalii Localitate - SIRUTA</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a0a;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #4a9eff;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 2em;
+            text-shadow: 0 0 10px rgba(74, 158, 255, 0.3);
+        }
+
+        .locality-card {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            border: 1px solid #333;
+        }
+
+        .locality-card h2 {
+            color: #4a9eff;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #4a9eff;
+            padding-bottom: 10px;
+        }
+
+        .locality-card.parent {
+            background: linear-gradient(135deg, #1a2a3a 0%, #2d3d4d 100%);
+            border: 1px solid #3a5a7a;
+        }
+
+        .locality-card.parent h2 {
+            color: #6ab0ff;
+            border-bottom-color: #6ab0ff;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .data-item {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 12px 15px;
+            border-radius: 8px;
+            border-left: 3px solid #4a9eff;
+        }
+
+        .data-item label {
+            display: block;
+            color: #888;
+            font-size: 0.85em;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .data-item .value {
+            color: #fff;
+            font-size: 1.1em;
+            font-weight: 500;
+        }
+
+        .error {
+            background: linear-gradient(135deg, #3a1a1a 0%, #4d2d2d 100%);
+            color: #ff6b6b;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid #ff6b6b;
+        }
+
+        .loading {
+            text-align: center;
+            color: #4a9eff;
+            font-size: 1.2em;
+            padding: 40px;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #4a9eff;
+            color: #000;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .badge.parent-badge {
+            background: #6ab0ff;
+        }
+
+        .seo-content {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            border-radius: 12px;
+            padding: 30px;
+            margin-top: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            border: 1px solid #333;
+            color: #b0b0b0;
+            line-height: 1.8;
+        }
+
+        .seo-content h3 {
+            color: #4a9eff;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .seo-content p {
+            margin-bottom: 12px;
+        }
+
+        .seo-content strong {
+            color: #e0e0e0;
+        }
+
+        @media (max-width: 600px) {
+            .data-grid {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🏘️ Detalii Localitate SIRUTA</h1>
+        <div id="content" class="loading">Se încarcă datele...</div>
+        <div id="seo-content"></div>
+    </div>
+
+    <script>
+        // Funcție pentru obținerea parametrilor din URL
+        function getUrlParameter(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+
+        // Funcție pentru afișarea datelor unei localități
+        function displayLocality(locality, isParent = false) {
+            const cardClass = isParent ? 'locality-card parent' : 'locality-card';
+            const badge = isParent ? '<span class="badge parent-badge">Localitate Părinte</span>' : '<span class="badge">Localitate Curentă</span>';
+            let tplCodMap = {
+                'Com': 'Comună',
+                'Sat': 'Sat',
+                'Orş': 'Oraș',
+                'Mun': 'Municipiu',
+                'Sect': 'Sector'
+            };
+            locality.tpl_cod = tplCodMap[locality.tpl_cod] || locality.tpl_cod || 'N/A';
+            // găsim numele județului din lista counties (când este disponibilă)
+            let countyName = 'N/A';
+            if (Array.isArray(counties) && counties.length) {
+                const match = counties.find(c => String(c.id) === String(locality.jud_cod));
+                if (match) countyName = match.name || match.nume || match.denumire || 'N/A';
+            }
+            // atașăm numele județului la jud_cod astfel încât șablonul existent să îl afișeze
+            locality.jud_cod = locality.jud_cod ? `${countyName} (${locality.jud_cod})` : countyName;
+
+            return `
+                <div class="${cardClass}">
+                    <h2>${locality.denumire || 'N/A'} ${badge}</h2>
+                    <div class="data-grid">
+                        <div class="data-item">
+                            <label>Cod SIRUTA</label>
+                            <div class="value">${locality.cod_siruta || 'N/A'}</div>
+                        </div>
+                        <div class="data-item">
+                            <label>Denumire</label>
+                            <div class="value">${locality.denumire || 'N/A'}</div>
+                        </div>
+                        <div class="data-item">
+                            <label>Tip Localitate</label>
+                            <div class="value">${locality.tpl_cod || 'N/A'}</div>
+                        </div>
+                        <div class="data-item">
+                            <label>Cod Județ</label>
+                            <div class="value">${locality.jud_cod || 'N/A'}</div>
+                        </div>
+                        <div class="data-item">
+                            <label>Cod</label>
+                            <div class="value">${locality.cod || 'N/A'}</div>
+                        </div>
+                        <div class="data-item">
+                            <label>Cod Poliție</label>
+                            <div class="value">${locality.cod_politie || 'N/A'}</div>
+                        </div>
+                        <div class="data-item">
+                            <label>Cod Postal</label>
+                            <div class="value">${locality.cod_postal || 'N/A'}</div>
+                        </div>
+                        <div class="data-item">
+                            <label>Cod SAR</label>
+                            <div class="value">${locality.sar_cod || 'N/A'}</div>
+                        </div>
+                        <div class="data-item">
+                            <label>Localitate Județ Cod</label>
+                            <div class="value">${locality.loc_jud_cod || 'N/A'}</div>
+                        </div>
+                        <div class="data-item">
+                            <label>Localitate Cod</label>
+                            <div class="value">${locality.loc_cod || 'N/A'}</div>
+                        </div>
+                        <div class="data-item">
+                            <label>Are Primărie</label>
+                            <div class="value">${locality.are_primarie !== 'N' ? '✓ Da' : '✗ Nu'}</div>
+                        </div>
+                        <div class="data-item">
+                            <label>Cod Fiscal Primărie</label>
+                            <div class="value">${locality.cod_fiscal_primarie || 'N/A'}</div>
+                        </div>
+                        <div class="data-item">
+                            <label>Cod Poliție Tata</label>
+                            <div class="value">${locality.cod_politie_tata || 'N/A'}</div>
+                        </div>
+                        <div class="data-item">
+                            <label>SAR Cod MF</label>
+                            <div class="value">${locality.sar_cod_mf || 'N/A'}</div>
+                        </div>
+                        <div class="data-item">
+                            <label>Cod SIRUTA Tata</label>
+                            <div class="value">${locality.cod_siruta_tata || 'N/A'}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        let counties = [];
+
+        // Funcție pentru generarea conținutului SEO
+        function generateSeoContent(locality, parentLocality = null) {
+            let seoText = `<div class="seo-content">`;
+            seoText += `<h3>Informații despre localitatea ${locality.denumire}</h3>`;
+
+            seoText += `<p><strong>${locality.denumire}</strong> este ${locality.tpl_cod === 'Sat' ? 'un sat' : locality.tpl_cod === 'Oraș' ? 'un oraș' : 'o localitate'} `;
+
+            if (parentLocality) {
+                seoText += `din ${parentLocality.denumire}, `;
+            }
+
+            seoText += `înregistrat în Sistemul Informatic de Referință pentru Unitățile Administrativ-Teritoriale (SIRUTA) cu codul <strong>${locality.cod_siruta}</strong>. `;
+
+            seoText += `Localitatea face parte din județul cu codul <strong>${locality.jud_cod}</strong> și are codul local <strong>${locality.cod}</strong>. `;
+
+            if (locality.cod_postal) {
+                seoText += `Codul poștal al localității este <strong>${locality.cod_postal}</strong>. `;
+            }
+
+            if (locality.cod_politie) {
+                seoText += `În evidențele poliției, această localitate este înregistrată cu codul <strong>${locality.cod_politie}</strong>. `;
+            }
+
+            if (locality.are_primarie === 'Y') {
+                seoText += `Localitatea dispune de primărie proprie`;
+                if (locality.cod_fiscal_primarie && locality.cod_fiscal_primarie !== '0') {
+                    seoText += ` cu codul fiscal <strong>${locality.cod_fiscal_primarie}</strong>`;
+                }
+                seoText += `. `;
+            } else {
+                seoText += `Localitatea nu dispune de primărie proprie. `;
+            }
+
+            seoText += `</p>`;
+
+            seoText += `<p>Alte coduri administrative includ: codul SAR <strong>${locality.sar_cod}</strong>, `;
+            seoText += `codul SAR MF <strong>${locality.sar_cod_mf}</strong>, `;
+            seoText += `codul localitate județ <strong>${locality.loc_jud_cod}</strong> și `;
+            seoText += `codul localitate <strong>${locality.loc_cod}</strong>. `;
+
+            if (locality.cod_politie_tata) {
+                seoText += `Codul poliție pentru unitatea administrativă superioară este <strong>${locality.cod_politie_tata}</strong>. `;
+            }
+
+            seoText += `</p>`;
+
+            if (parentLocality) {
+                seoText += `<p>Localitatea ${locality.denumire} este subordonată administrativ localității <strong>${parentLocality.denumire}</strong> `;
+                seoText += `(cod SIRUTA: <strong>${parentLocality.cod_siruta}</strong>), `;
+                seoText += `care este înregistrată ca ${parentLocality.tpl_cod}`;
+                if (parentLocality.cod_postal) {
+                    seoText += ` și are codul poștal ${parentLocality.cod_postal}`;
+                }
+                seoText += `. </p>`;
+            }
+
+            seoText += `<p>Aceste informații administrative sunt esențiale pentru identificarea corectă a localității în documentele oficiale, corespondența administrativă și în sistemele informatice ale autorităților publice din România.</p>`;
+
+            seoText += `</div>`;
+
+            return seoText;
+        }
+
+        // Funcție principală pentru încărcarea și afișarea datelor
+        async function loadData() {
+            const contentDiv = document.getElementById('content');
+            const seoDiv = document.getElementById('seo-content');
+            const sirutaId = getUrlParameter('id');
+
+            if (!sirutaId) {
+                contentDiv.innerHTML = '<div class="error">❌ Lipsește parametrul ID din URL. Utilizați: ?id={COD_SIRUTA}</div>';
+                return;
+            }
+
+            try {
+                // Încărcăm fișierul JSON
+                const response = await fetch('data.json');
+                if (!response.ok) {
+                    throw new Error('Nu s-a putut încărca fișierul data.json');
+                }
+
+                const data = await response.json();
+                const localities = data.localities;
+                counties = data.counties || [];
+
+                if (!localities || !Array.isArray(localities)) {
+                    throw new Error('Formatul fișierului JSON este incorect');
+                }
+
+                // Căutăm localitatea cu cod_siruta = id
+                const locality = localities.find(loc => loc.cod_siruta === sirutaId);
+
+                if (!locality) {
+                    contentDiv.innerHTML = `<div class="error">❌ Nu s-a găsit nicio localitate cu codul SIRUTA: ${sirutaId}</div>`;
+                    return;
+                }
+
+                let htmlContent = displayLocality(locality, false);
+                let parentLocality = null;
+
+                // Verificăm dacă există localitate părinte
+                if (locality.cod_siruta_tata && parseInt(locality.cod_siruta_tata) > 0) {
+                    parentLocality = localities.find(loc => loc.cod_siruta === locality.cod_siruta_tata);
+
+                    if (parentLocality) {
+                        htmlContent = htmlContent + displayLocality(parentLocality, true);
+                    }
+                }
+
+                contentDiv.innerHTML = htmlContent;
+
+                // Generăm conținutul SEO
+                seoDiv.innerHTML = generateSeoContent(locality, parentLocality);
+
+                // Actualizăm titlul paginii pentru SEO
+                document.title = `${locality.denumire} - Cod SIRUTA ${locality.cod_siruta} - Informații Localitate`;
+
+            } catch (error) {
+                contentDiv.innerHTML = `<div class="error">❌ Eroare: ${error.message}</div>`;
+            }
+        }
+
+        // Încărcăm datele când pagina este gata
+        document.addEventListener('DOMContentLoaded', loadData);
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="ro">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Căutare Localități</title>
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --text-primary: #0a0a0a;
+            --text-secondary: #666666;
+            --border-color: #e0e0e0;
+            --accent-color: #2196F3;
+            --accent-hover: #1976D2;
+            --table-header: #f8f9fa;
+            --shadow: rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #2d2d2d;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --border-color: #404040;
+            --accent-color: #42a5f5;
+            --accent-hover: #64b5f6;
+            --table-header: #2d2d2d;
+            --shadow: rgba(0, 0, 0, 0.5);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s, color 0.3s;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        a {
+            color: #3EA5F5;
+            text-decoration: none;
+        }
+
+        a:active,
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .theme-toggle {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .theme-toggle:hover {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        .search-container {
+            margin-bottom: 30px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 15px 20px;
+            font-size: 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            transition: all 0.3s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+        }
+
+        .search-input:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .results-count {
+            margin: 20px 0;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .result-item {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px var(--shadow);
+            transition: all 0.3s;
+        }
+
+        .result-item:hover {
+            box-shadow: 0 4px 16px var(--shadow);
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--accent-color);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            background-color: var(--bg-primary);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        thead {
+            background-color: var(--table-header);
+        }
+
+        th,
+        td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        td {
+            font-size: 14px;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tbody tr:hover {
+            background-color: var(--bg-secondary);
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+
+        .parent-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px dashed var(--border-color);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+
+            0%,
+            20% {
+                content: '.';
+            }
+
+            40% {
+                content: '..';
+            }
+
+            60%,
+            100% {
+                content: '...';
+            }
+        }
+
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #c62828;
+        }
+
+        [data-theme="dark"] .error {
+            background-color: #4a2020;
+            color: #ff5252;
+            border-left-color: #ff5252;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            table {
+                font-size: 12px;
+            }
+
+            th,
+            td {
+                padding: 8px 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Căutare Localități</h1>
+            <div style="display:flex;gap:10px;align-items:center;margin-left:auto; margin-right:10px">
+                <a href="toate_siruta.html" title="Vezi toate înregistrările SIRUTA" target="_blank" rel="noopener"
+                    style="text-decoration:none;color:var(--text-primary);background:var(--bg-secondary);border:1px solid var(--border-color);padding:6px 16px;border-radius:8px;transition:all .2s;">
+                    Index SIRUTA
+                </a>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">Schimbă Tema</button>
+        </div>
+
+        <div class="search-container">
+            <input type="text" class="search-input" id="searchInput" placeholder="Se încarcă datele..."
+                autocomplete="off" disabled>
+        </div>
+
+        <div class="results-count" id="resultsCount"></div>
+        <div id="results">
+            <div class="loading">Se încarcă datele localităților</div>
+        </div>
+    </div>
+
+    <script>
+        let localitiesData = {
+            localities: []
+        };
+
+        // Mapping for readable column names
+        const columnLabels = {
+            'denumire': 'Denumire',
+            'jud_cod': 'Cod Județ',
+            'cod': 'Cod',
+            'cod_siruta': 'Cod SIRUTA',
+            'cod_politie': 'Cod Poliție',
+            'tpl_cod': 'Tip Localitate',
+            'cod_postal': 'Cod Poștal',
+            'sar_cod': 'SAR Cod',
+            'loc_jud_cod': 'Cod Județ Localitate',
+            'loc_cod': 'Cod Localitate',
+            'are_primarie': 'Are Primărie',
+            'cod_fiscal_primarie': 'Cod Fiscal Primărie',
+            'cod_politie_tata': 'Cod Poliție Tată',
+            'sar_cod_mf': 'SAR Cod MF',
+            'cod_siruta_tata': 'Cod SIRUTA Tată'
+        };
+
+        // Format value based on key
+        function formatValue(key, value) {
+            // Handle null, undefined, or empty string
+            if (value === null || value === undefined || value === '') {
+                return '-';
+            }
+
+            // Handle are_primarie specifically
+            if (key === 'are_primarie') {
+                return value.toString().toUpperCase() === 'N' ? 'Nu' : 'Da';
+            }
+
+            // Handle 0 values for postal code
+            if (key === 'cod_postal' && (value === '0' || value === 0)) {
+                return '0';
+            }
+
+            // Return value as is
+            return value.toString();
+        }
+
+        // Load data from data.json
+        async function loadData() {
+            try {
+                const response = await fetch('data.json');
+                if (!response.ok) {
+                    throw new Error(`Eroare HTTP! status: ${response.status}`);
+                }
+                const data = await response.json();
+                localitiesData = data;
+
+                // Enable search input
+                const searchInput = document.getElementById('searchInput');
+                searchInput.disabled = false;
+                searchInput.placeholder = 'Caută localități după nume (ex: București)...';
+
+                // Clear loading message
+                document.getElementById('results').innerHTML = '';
+                document.getElementById('resultsCount').textContent = `Date încărcate: ${localitiesData.localities.length} localități`;
+
+                console.log(`✓ Încărcate ${localitiesData.localities.length} localități`);
+            } catch (error) {
+                console.error('Eroare la încărcarea datelor:', error);
+                document.getElementById('results').innerHTML = `
+                    <div class="error">
+                        <strong>Eroare la încărcarea fișierului data.json</strong><br>
+                        ${error.message}<br><br>
+                        Asigurați-vă că fișierul data.json este în același director cu acest fișier HTML.
+                    </div>
+                `;
+                document.getElementById('searchInput').placeholder = 'Eroare la încărcarea datelor';
+            }
+        }
+
+        // Remove diacritics function
+        function removeDiacritics(str) {
+            return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        }
+
+        // Search function
+        function searchLocalities(query) {
+            if (!query.trim()) {
+                return [];
+            }
+
+            const normalizedQuery = removeDiacritics(query);
+            return localitiesData.localities.filter(locality => {
+                const normalizedDenumire = removeDiacritics(locality.denumire);
+                return normalizedDenumire.includes(normalizedQuery);
+            });
+        }
+
+        // Find parent locality by cod_siruta
+        function findParent(codSirutaTata) {
+            // Don't fetch parent if cod_siruta_tata is 0, "0", null, undefined, or empty
+            if (!codSirutaTata || codSirutaTata === "0" || codSirutaTata === 0) {
+                return null;
+            }
+            return localitiesData.localities.find(loc => loc.cod_siruta === codSirutaTata);
+        }
+
+        // Create table HTML with readable labels
+        function createTable(data, title) {
+            if (!data) {
+                return `<div class="no-results">Nu s-a găsit ${title}</div>`;
+            }
+
+            const keys = Object.keys(data);
+            const mid = Math.ceil(keys.length / 2);
+            const leftKeys = keys.slice(0, mid);
+            const rightKeys = keys.slice(mid);
+            // ensure tables have same number of rows by adding a placeholder entry if needed
+            if (leftKeys.length !== rightKeys.length) {
+                // add placeholder value to data so lookup yields "-"
+                data['⠀'] = '⠀';
+                while (leftKeys.length < rightKeys.length) leftKeys.push('-');
+                while (rightKeys.length < leftKeys.length) rightKeys.push('-');
+            }
+
+            function rowsFor(keysArray) {
+                return keysArray.map(key => {
+                    const label = columnLabels[key] || key;
+                    const value = formatValue(key, data[key]);
+                    return `
+                        <tr>
+                            <td><strong>${label}</strong></td>
+                            <td>${value}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            const leftTable = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Proprietate</th>
+                            <th>Valoare</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rowsFor(leftKeys)}
+                    </tbody>
+                </table>
+            `;
+
+            const rightTable = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Proprietate</th>
+                            <th>Valoare</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rowsFor(rightKeys)}
+                    </tbody>
+                </table>
+            `;
+
+            // wrapper uses flex so tables sit side-by-side; min-width ensures wrapping on small screens
+            return `
+                <div class="section-title">${title}</div>
+                <div style="display:flex;gap:20px;flex-wrap:wrap">
+                    <div style="flex:1;min-width:240px">
+                        ${leftTable}
+                    </div>
+                    <div style="flex:1;min-width:240px">
+                        ${rightTable}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Display results
+        function displayResults(results) {
+            const resultsDiv = document.getElementById('results');
+            const resultsCount = document.getElementById('resultsCount');
+
+            if (results.length === 0) {
+                resultsCount.textContent = '';
+                resultsDiv.innerHTML = '<div class="no-results">Nu s-au găsit rezultate. Încercați alt termen de căutare.</div>';
+                return;
+            }
+
+            resultsCount.textContent = `Găsit${results.length > 1 ? 'e' : ''} ${results.length} rezultat${results.length > 1 ? 'e' : ''}`;
+
+            let html = '';
+            results.forEach((locality, index) => {
+                html += '<div class="result-item">';
+
+                // Main locality table
+                html += createTable(locality, `📍 <a href="cod_siruta.html?id=${locality.cod_siruta}">${locality.denumire}</a> : ${locality.cod_siruta}`);
+                // Parent locality table - only if cod_siruta_tata is not 0
+                const parent = findParent(locality.cod_siruta_tata);
+                if (parent) {
+                    html += '<div class="parent-section">';
+                    html += createTable(parent, `⬆️ Localitate Părinte: ${parent.denumire}`);
+                    html += '</div>';
+                }
+
+                html += '</div>';
+            });
+
+            resultsDiv.innerHTML = html;
+        }
+
+        let debounceTimer;
+        const searchInput = document.getElementById('searchInput');
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value;
+            if (query.trim().length < 3) return;
+
+            // If user typed at least 3 characters, run search immediately
+            if (query.trim().length >= 3) {
+                clearTimeout(debounceTimer);
+                const results = searchLocalities(query);
+                displayResults(results);
+                return;
+            }
+
+            // Otherwise debounce for 500ms
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                const results = searchLocalities(query);
+                displayResults(results);
+            }, 500);
+        });
+
+        // Theme toggle
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+
+        // Load saved theme
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        }
+
+        // Initialize
+        loadTheme();
+        loadData();
+    </script>
+</body>
+
+</html>
