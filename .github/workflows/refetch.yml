@@ -1,0 +1,33 @@
+name: Refetch data
+
+on:
+    workflow_dispatch:
+    push:
+        paths:
+            - 'get_data.js'
+            - 'package.json'
+            - 'package-lock.json'
+    schedule:
+        - cron: '0 0 * * 0' # weekly: Sundays at 00:00 UTC
+
+jobs:
+    refetch:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                node-version: '18'
+
+            - name: Install dependencies if missing and run get_data
+              run: |
+                    if [ ! -d node_modules ]; then
+                        echo "node_modules not found, running npm i"
+                        npm i
+                    else
+                        echo "node_modules found, skipping npm i"
+                    fi
+                    node get_data.js
