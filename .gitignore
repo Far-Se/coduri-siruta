@@ -1,2 +1,4 @@
 # Ignore the siruta directory at the repository root
 /siruta/
+/node_modules/
+node_modules

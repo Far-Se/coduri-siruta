@@ -3,7 +3,7 @@ const xml2js = require('xml2js');
 
 // Configuration
 const BASE_URL = 'https://mfinante.gov.ro/static/40/Mfp/nomenclatoare/nomLocalitati_';
-const DATE_SUFFIX = '_07.10.2025.xml';
+const DATE_SUFFIX = '_17.12.2025.xml';
 const OUTPUT_FILE = 'data.json';
 const TOTAL_IDS = 40;
 const counties = [
@@ -233,12 +233,13 @@ async function main() {
     const jsonResults = await Promise.all(jsonPromises);
     const validResults = jsonResults.filter(json => json !== null);
 
+
     console.log(`Successfully processed ${validResults.length} out of ${TOTAL_IDS} files`);
 
 
     // Merge all JSON data into a single array
     const mergedData = {
-        localities: validResults.flatMap(result => result.nom_localitati.rand),
+        localities: validResults.flatMap(result => result.nom_localitati.rand).map(e => e.tpl_cod == "Sec" ? (e.denumire = "Sector " + e.denumire, e) : e),
         totalFiles: validResults.length,
         counties: counties,
         fetchedAt: new Date().toISOString()
